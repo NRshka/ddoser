@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	//  "os"
 	"time"
 	//"image"
@@ -17,6 +18,7 @@ import (
 
 var numberCreatedImages int = 0
 var numberGoroutines int = 0
+var toLoad bool = false
 
 type MathFunction func(int) int
 
@@ -101,9 +103,11 @@ func Client(url string, img []byte, n int) {
 	if errs != nil {
 		log.Println("Bleeeeeeeet  -------------------------------Can not read response!\n")
 	} else {
-		//os.Create("D:\\golang\\ddos\\got_img" + strconv.Itoa(numberCreatedImages) + ".png")
-		//err := ioutil.WriteFile("D:\\golang\\ddos\\got_img"+strconv.Itoa(numberCreatedImages)+".png", b, 0644)
-		//numberCreatedImages++
+		if toLoad {
+			os.Create(".\\got_img" + strconv.Itoa(numberCreatedImages) + ".png")
+			err := ioutil.WriteFile("D:\\golang\\ddos\\got_img"+strconv.Itoa(numberCreatedImages)+".png", b, 0644)
+			numberCreatedImages++
+		}
 		if err != nil {
 			panic("Can not write image!\n")
 		}
