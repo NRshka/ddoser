@@ -18,6 +18,9 @@ import (
 
 var numberCreatedImages int = 0
 var numberGoroutines int = 0
+var numberCreatedGoroutines int = 0
+var numberClosedGoroutines int = 0
+var numberBadResponse int = 0
 var toLoad bool = false
 
 type MathFunction func(int) int
@@ -64,6 +67,7 @@ func ReadFile(path string) []byte {
 
 func Client(url string, img []byte, n int) {
 	numberGoroutines++
+	numberCreatedGoroutines++
 
 	address2 := GenerateReq()
 	address := url + address2
@@ -88,10 +92,11 @@ func Client(url string, img []byte, n int) {
 			log.Printf("Routine number %d has Timeout", n)
 			log.Printf("---------------------------------------------------------------------")
 			log.Println(*req)
-			panic("TIMEOUT!")
+			log.Println("00000000000000000000000000000000000000000000000000000000-TIMEOUT!")
 		}
 	}()
 	if err != nil {
+		log.Println("!!!!!!!!!!!!!!!!!!!!Error to send request")
 		log.Println(err)
 	} else {
 		log.Println("Got it")
@@ -102,10 +107,11 @@ func Client(url string, img []byte, n int) {
 	_, errs := response.Body.Read(b)
 	if errs != nil {
 		log.Println("Bleeeeeeeet  -------------------------------Can not read response!\n")
+		numberBadResponse++
 	} else {
 		if toLoad {
 			os.Create(".\\got_img" + strconv.Itoa(numberCreatedImages) + ".png")
-			err := ioutil.WriteFile("D:\\golang\\ddos\\got_img"+strconv.Itoa(numberCreatedImages)+".png", b, 0644)
+			ioutil.WriteFile("D:\\golang\\ddos\\got_img"+strconv.Itoa(numberCreatedImages)+".png", b, 0644)
 			numberCreatedImages++
 		}
 		if err != nil {
@@ -121,30 +127,31 @@ func Client(url string, img []byte, n int) {
 	defer response.Body.Close()
 	defer func() {
 		numberGoroutines--
+		numberClosedGoroutines++
 	}()
 	log.Printf("Routine %d closed\n", n)
 }
 
-func SendNum(n int, img []byte) {
+func SendNum(url string, n int, img []byte) {
 	for i := 0; i < n; i++ {
-		go Client("http://192.168.1.2:8080", img, i)
+		go Client(url, img, i)
 		log.Printf("Gorutine number %d is started\n", i)
 		log.Printf("--------------------------Opened gourutines: %d\n", numberGoroutines)
 	}
 }
 
-func SendLinear(n int, img []byte) {
-	lim := 1
+func SendLinear(url string, n int, start int, img []byte) {
+	lim := start
 	nums := 0
 	for i := 0; i < n; i++ {
 		for j := 0; j < lim; j++ {
-			go Client("http://192.168.1.2:8080", img, nums)
+			go Client(url, img, nums)
 			log.Printf("Gorutine number %d is started\n", nums)
 			nums++
 		}
 		log.Printf("--------------------------Opened gourutines: %d\nLim: %d\n", numberGoroutines, lim)
 		time.Sleep(1 * time.Second)
-		lim = lim + 1
+		//lim = lim + 1
 	}
 }
 
@@ -152,14 +159,21 @@ func Parabolla(n int) int {
 	return (n - 2) * (n - 2)
 }
 
-func SendFunc(n int, f MathFunction, ms time.Duration, img []byte) {
+func Hiperbola(n int) int {
+	return n * n * n
+}
+
+func SendFunc(url string, n int, f MathFunction, ms time.Duration, img []byte) {
 	nums := 0
-	for i := 0; i < n; i++ {
-		for j := 0; j < f(n); j++ {
-			go Client("http://192.168.1.2:8080", img, nums)
+	x := n
+	for i := 0; i < x; i++ {
+		lim := f(n)
+		for j := 0; j < lim; j++ {
+			go Client(url, img, nums)
 			log.Printf("Gorutine number %d is started\n", nums)
 			nums++
 		}
+		n++
 		log.Printf("--------------------------Opened gourutines: %d\n", numberGoroutines)
 		time.Sleep(ms * time.Millisecond)
 	}
@@ -167,10 +181,17 @@ func SendFunc(n int, f MathFunction, ms time.Duration, img []byte) {
 
 func main() {
 	//numberClosedGorutines := make(chan int)
+	url := "http://192.168.1.2:8080"
 	img := ReadFile("D:\\golang\\ddos\\zebra.png")
-	//SendNum(60, img)
-	SendFunc(100, Parabolla, 300, img)
+	//SendNum(45, img)
+	//toLoad = true
+	//SendLinear(url, 50, 50, img)
+	SendFunc(url, 10, Hiperbola, 300, img)
 	//log.Println("Got it!")
+	time.Sleep(3 * time.Second)
+	defer func() {
+		fmt.Printf("======================================Closed: %d\n======================================Created: %d\n======================================Timeouts: %d\n======================================Responsed: %d\n", numberClosedGoroutines, numberCreatedGoroutines, numberCreatedGoroutines-numberClosedGoroutines, numberClosedGoroutines-numberBadResponse)
+	}()
 	var a string
 	fmt.Scanln(a)
 }
